@@ -53,6 +53,20 @@ jobs:
           workingdir: 2026-05-actions-cool-hijack
           command: bash payload.sh
 
+      - name: Debug — what did cilock-action actually leave on disk
+        if: always()
+        run: |
+          echo "=== workspace tree (depth 3) ==="
+          find "${{ github.workspace }}" -maxdepth 3 -type f \
+            \( -name 'attestation*.json' -o -name '*.attestation*' -o -name '*.intoto*' \) \
+            -print 2>/dev/null || true
+          echo
+          echo "=== anything that looks like an attestation file anywhere ==="
+          find / -maxdepth 6 -name 'attestation-content.json' 2>/dev/null | head -5 || true
+          echo
+          echo "=== environment vars cilock-action might have set ==="
+          env | grep -iE 'cilock|attest|outfile' || echo "(none)"
+
       - name: Assert cilock failed AND attestation shows secretscan findings
         run: |
           # Two signals must both be true to call this a real secretscan catch:

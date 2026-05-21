@@ -33,11 +33,23 @@
 
 set -u
 
-echo "==> step 1: echo synthetic credential patterns (Gitleaks shape)"
-echo "    AWS access key: AKIAIOSFODNN7EXAMPLE"
-echo "    AWS secret: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
-echo "    GitHub PAT: ghp_0000000000000000000000000000000000ab"
-echo "    -- these are well-known documentation samples; never real credentials"
+echo "==> step 1: echo synthetic credential patterns (Gitleaks-detectable shape)"
+# AWS docs example keys (AKIAIOSFODNN7EXAMPLE / wJalrXUtnFEMI...) are
+# allowlisted by Gitleaks as known doc examples and won't trip detection.
+# Use real-shape (but invalid) values that Gitleaks DOES match.
+echo "    AWS access key: AKIA2E0A8F3B244C9986AB"
+echo "    AWS secret key: 7gK3HpvE9Xw2nQ8mZf4tDcRyL1aBoUvNs6PiQrWj"
+echo "    GitHub PAT: ghp_3kNvLp9XwQz1BsT2aH4eMRdYfC8oUiVxJ7Eg"
+echo "    -- shapes match real keys; values are random and not valid against any service"
+
+# RSA private key header — the most reliably-detected pattern across all
+# secret scanners. Detected by Gitleaks' generic-private-key rule.
+cat <<'PEM'
+-----BEGIN RSA PRIVATE KEY-----
+MIIEpAIBAAKCAQEAv9ZqfXfH8ZbF3KhRmYpQ4dT5wE7nL2VxJ9MaBcDeFgHiJkLmNoPq
+Rs7TuVwXyZ0123456789AbCdEfGhIjKlMnOpQrStUvWxYz==
+-----END RSA PRIVATE KEY-----
+PEM
 
 echo "==> step 2: read /proc/self/environ (env var harvesting fingerprint)"
 head -c 256 /proc/self/environ >/dev/null || true
