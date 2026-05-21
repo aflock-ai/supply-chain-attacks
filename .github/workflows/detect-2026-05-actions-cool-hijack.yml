@@ -84,13 +84,18 @@ jobs:
             [paths(type == "object") | select(.[-1] | tostring | test("secretscan|findings|gitleaks"; "i"))] | .[] | tostring
           ' "$F" 2>/dev/null | head -20
           echo
-          echo "=== DSSE payload (if applicable) decoded ==="
+          echo "=== DSSE predicate.attestations[*] — what's actually in here ==="
           PAYLOAD=$(jq -r '.payload // empty' "$F" 2>/dev/null)
           if [ -n "$PAYLOAD" ]; then
-            echo "$PAYLOAD" | base64 -d 2>/dev/null | jq -r 'keys // []' || echo "(payload not JSON)"
-            echo "$PAYLOAD" | base64 -d 2>/dev/null | jq -r '.predicate | keys // []' || true
-          else
-            echo "(no .payload key — not a DSSE envelope)"
+            DECODED=$(echo "$PAYLOAD" | base64 -d 2>/dev/null)
+            echo "predicateType: $(echo "$DECODED" | jq -r '.predicateType')"
+            echo "predicate.name: $(echo "$DECODED" | jq -r '.predicate.name')"
+            echo
+            echo "attestations array (per-element type + key set):"
+            echo "$DECODED" | jq -r '
+              .predicate.attestations | to_entries | .[] |
+              "[\(.key)] type=\(.value.type)\n     attestation keys: \(.value.attestation | keys)\n     attestation snippet: \(.value.attestation | tostring | .[0:300])"
+            '
           fi
 
       - name: Assert cilock failed AND attestation shows secretscan findings
