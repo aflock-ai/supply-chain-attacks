@@ -78,7 +78,7 @@ echo '{"actionref":"actions-cool/some-action@v1","refpinned":false}' \
 
 ## Live CI
 
-[`./.github/workflows/detect.yml`](.github/workflows/detect.yml) runs each detection layer as a separate job on every push. Green = detection still works; red = detection broke, file an issue.
+[`detect-2026-05-actions-cool-hijack.yml`](../.github/workflows/detect-2026-05-actions-cool-hijack.yml) runs each detection layer as a separate job on every push that touches this directory. Green = detection still works; red = detection broke, file an issue.
 
 ## References
 

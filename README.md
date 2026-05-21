@@ -30,7 +30,7 @@ For each catalogued attack, this repo ships:
 1. **A README** with the timeline, IOCs, attribution, and the cilock detection mechanism that catches it.
 2. **A safe synthetic payload** that reproduces the attack's syscalls / output patterns without any real exfiltration. No live secrets. No network beacons. No live malware.
 3. **A signed cilock policy** ([OPA Rego](https://www.openpolicyagent.org/docs/latest/policy-language/)) that detects the attack at one or more of cilock's three defense layers.
-4. **A live CI workflow** (`./<attack>/.github/workflows/detect.yml`) that runs the payload through cilock with the policy on every push and turns the badge green or red. If it goes red, the detection broke and the README is now lying.
+4. **A live CI workflow** (`.github/workflows/detect-<attack>.yml`) that runs the payload through cilock with the policy on every push and turns the badge green or red. If it goes red, the detection broke and the README is now lying.
 
 The harness shape is identical across attacks — the same `cilock run` + `cilock verify` pair, the same policy module structure, the same job matrix. Only the payload and the policy details change. That makes it cheap to add a new attack and trivial for a reader to compare detections across attacks.
 
@@ -89,9 +89,12 @@ Each subdirectory is independent. To add a new attack:
 │                                       # real secrets or live exfil URLs. Echo synthetic
 │                                       # credential patterns + touch the same syscalls
 │                                       # the real attack hits.
-├── policy-<layer>.rego                 # One or more Rego policies that fire on the attack
-└── .github/workflows/detect.yml        # CI: runs payload through cilock + verifies policy
-                                        # fires. Mirror the shape in actions-cool-hijack/.
+└── policy-<layer>.rego                 # One or more Rego policies that fire on the attack
+
+.github/workflows/detect-<attack-name>.yml     # CI for this attack. Mirror the shape
+                                                # of detect-2026-05-actions-cool-hijack.yml.
+                                                # Lives at the repo root because GitHub
+                                                # only discovers workflows there.
 ```
 
 Open a PR; the top-level CI matrix automatically picks up the new directory. README's table needs a new row.
