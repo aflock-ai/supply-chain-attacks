@@ -41,7 +41,7 @@ jobs:
         uses: aflock-ai/cilock-action@v1.0.1
         with:
           step: detect-actions-cool-content
-          attestations: "environment git github commandrun secretscan"
+          attestations: "environment git github secretscan"
           outfile: ${{ github.workspace }}/attestation-content.json
           enable-sigstore: "true"
           enable-archivista: "false"
@@ -101,7 +101,7 @@ jobs:
         uses: aflock-ai/cilock-action@v1.0.1
         with:
           step: detect-actions-cool-behavior
-          attestations: "environment git github commandrun"
+          attestations: "environment git github"
           trace: "true"
           outfile: ${{ github.workspace }}/attestation-behavior.json
           enable-sigstore: "true"
