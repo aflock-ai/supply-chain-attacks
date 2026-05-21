@@ -1,0 +1,132 @@
+name: detect actions-cool hijack
+
+# Lives at <repo-root>/2026-05-actions-cool-hijack/.github/workflows/detect.yml
+# but is also runnable via the top-level matrix. Triggered on push so the
+# README badge stays honest.
+
+on:
+  push:
+    paths:
+      - "2026-05-actions-cool-hijack/**"
+      - ".github/workflows/ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write   # cilock-action uses GH OIDC for keyless signing
+
+jobs:
+  # ── Content layer: secretscan with --fail-on-detection ───────────────
+  detect-content:
+    name: content / secretscan fires on credential patterns
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Run the synthetic payload through cilock, expect failure
+        id: run
+        continue-on-error: true
+        uses: aflock-ai/cilock-action@1785817ce72739e4c79cae918358a72b9ade672b # v1.0.1
+        with:
+          step: detect-actions-cool-content
+          attestations: "environment git github commandrun secretscan"
+          outfile: ${{ github.workspace }}/attestation-content.json
+          enable-sigstore: "true"
+          enable-archivista: "false"
+          fulcio-url: "https://fulcio.sigstore.dev"
+          fulcio-oidc-client-id: "sigstore"
+          fulcio-oidc-issuer: "https://token.actions.githubusercontent.com"
+          timestamp-servers: "https://timestamp.sigstore.dev/api/v1/timestamp"
+          cilock-args: "--attestor-secretscan-fail-on-detection"
+          workingdir: 2026-05-actions-cool-hijack
+          command: bash payload.sh
+
+      - name: Assert: cilock should have failed (secretscan caught it)
+        run: |
+          if [ "${{ steps.run.outcome }}" = "failure" ]; then
+            echo "✓ secretscan layer fired as expected — content detection works"
+            exit 0
+          else
+            echo "✗ secretscan did NOT fail the build — detection regressed"
+            exit 1
+          fi
+
+  # ── Behavior layer: --trace + OPA Rego on filesystem patterns ────────
+  detect-behavior:
+    name: behavior / trace + OPA catches /proc reads
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Run the payload with --trace (no secretscan; isolate behavior layer)
+        uses: aflock-ai/cilock-action@1785817ce72739e4c79cae918358a72b9ade672b # v1.0.1
+        with:
+          step: detect-actions-cool-behavior
+          attestations: "environment git github commandrun"
+          trace: "true"
+          outfile: ${{ github.workspace }}/attestation-behavior.json
+          enable-sigstore: "true"
+          enable-archivista: "false"
+          fulcio-url: "https://fulcio.sigstore.dev"
+          fulcio-oidc-client-id: "sigstore"
+          fulcio-oidc-issuer: "https://token.actions.githubusercontent.com"
+          timestamp-servers: "https://timestamp.sigstore.dev/api/v1/timestamp"
+          workingdir: 2026-05-actions-cool-hijack
+          command: bash payload.sh
+
+      - name: Verify behavioral policy fires
+        run: |
+          # cilock verify against the rego policy; exit non-zero if no deny fires
+          docker run --rm \
+            -v "${{ github.workspace }}:/work" \
+            -w /work \
+            ghcr.io/aflock-ai/cilock:latest verify \
+              --policy /work/2026-05-actions-cool-hijack/policy-trace-behavioral.rego \
+              /work/attestation-behavior.json \
+            && {
+              echo "✗ behavioral policy did NOT fire on the payload — detection regressed"
+              exit 1
+            } || {
+              echo "✓ behavioral policy fired as expected (/proc reads + /tmp/runner_collected match)"
+            }
+
+  # ── Prevention layer: source-restrict policy ─────────────────────────
+  # Static eval — no payload needed. Feed a fake actionref input and assert
+  # the policy denies it.
+  detect-prevention:
+    name: prevention / source-restrict denies untrusted + unpinned refs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Install OPA
+        run: |
+          curl -fsSL -o /usr/local/bin/opa \
+            https://openpolicyagent.org/downloads/latest/opa_linux_amd64_static
+          chmod +x /usr/local/bin/opa
+          opa version
+
+      - name: Eval policy against untrusted + unpinned actions-cool ref
+        run: |
+          INPUT='{"actionref":"actions-cool/some-action@v1","refpinned":false}'
+          RESULT=$(echo "$INPUT" | opa eval -I -d 2026-05-actions-cool-hijack/policy-source-restrict.rego 'data.cilock.verify.deny' -f json)
+          DENY_COUNT=$(echo "$RESULT" | jq -r '.result[0].expressions[0].value | length')
+          echo "$RESULT" | jq
+          if [ "$DENY_COUNT" -ge 2 ]; then
+            echo "✓ prevention policy fired both rules (untrusted source + not SHA-pinned)"
+          else
+            echo "✗ prevention policy fired $DENY_COUNT rules; expected ≥ 2"
+            exit 1
+          fi
+
+      - name: Eval policy against trusted + SHA-pinned ref (should NOT fire)
+        run: |
+          INPUT='{"actionref":"actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683","refpinned":true}'
+          RESULT=$(echo "$INPUT" | opa eval -I -d 2026-05-actions-cool-hijack/policy-source-restrict.rego 'data.cilock.verify.deny' -f json)
+          DENY_COUNT=$(echo "$RESULT" | jq -r '.result[0].expressions[0].value | length')
+          if [ "$DENY_COUNT" = "0" ]; then
+            echo "✓ prevention policy correctly allows a known-good SHA-pinned action"
+          else
+            echo "✗ prevention policy denied a trusted + SHA-pinned ref ($DENY_COUNT rules); false positive"
+            exit 1
+          fi
