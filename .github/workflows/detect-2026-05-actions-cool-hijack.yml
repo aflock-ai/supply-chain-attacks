@@ -52,51 +52,6 @@ jobs:
           workingdir: 2026-05-actions-cool-hijack
           command: bash payload.sh
 
-      - name: Debug — dump attestation file structure
-        if: always()
-        run: |
-          F="${{ github.workspace }}/attestation-content.json"
-          if [ ! -f "$F" ]; then
-            echo "::error::attestation file missing at $F"
-            exit 0
-          fi
-          echo "=== file size + first 200 bytes ==="
-          ls -la "$F"
-          head -c 200 "$F"
-          echo
-          echo
-          echo "=== top-level keys ==="
-          jq -r 'keys // []' "$F" 2>/dev/null || echo "(not JSON)"
-          echo
-          echo "=== full structure (depth 2) ==="
-          jq -r '
-            def keys2($k):
-              . as $v |
-              if (type == "object") then
-                ($k + ":\n" + (to_entries | map("  - " + .key + " (" + (.value | type) + ")") | join("\n")))
-              else $k + " = " + (tostring) end;
-            keys2("ROOT")
-          ' "$F" 2>/dev/null | head -50
-          echo
-          echo "=== search for 'secretscan' or 'findings' anywhere ==="
-          jq -r '
-            [paths(type == "object") | select(.[-1] | tostring | test("secretscan|findings|gitleaks"; "i"))] | .[] | tostring
-          ' "$F" 2>/dev/null | head -20
-          echo
-          echo "=== DSSE predicate.attestations[*] — what's actually in here ==="
-          PAYLOAD=$(jq -r '.payload // empty' "$F" 2>/dev/null)
-          if [ -n "$PAYLOAD" ]; then
-            DECODED=$(echo "$PAYLOAD" | base64 -d 2>/dev/null)
-            echo "predicateType: $(echo "$DECODED" | jq -r '.predicateType')"
-            echo "predicate.name: $(echo "$DECODED" | jq -r '.predicate.name')"
-            echo
-            echo "attestations array (per-element type + key set):"
-            echo "$DECODED" | jq -r '
-              .predicate.attestations | to_entries | .[] |
-              "[\(.key)] type=\(.value.type)\n     attestation keys: \(.value.attestation | keys)\n     attestation snippet: \(.value.attestation | tostring | .[0:300])"
-            '
-          fi
-
       - name: Assert secretscan recorded ≥1 finding inside the DSSE payload
         run: |
           # The DSSE envelope wraps the payload as a base64-encoded JSON
@@ -169,19 +124,6 @@ jobs:
             https://openpolicyagent.org/downloads/latest/opa_linux_amd64_static
           chmod +x /usr/local/bin/opa
           opa version
-
-      - name: Debug — dump behavior attestation structure
-        run: |
-          F=attestation-behavior.json
-          if [ ! -s "$F" ]; then
-            echo "::error::no attestation file at $F"
-            exit 1
-          fi
-          echo "=== attestations array (type + keys + snippet) ==="
-          jq -r '.payload' "$F" | base64 -d | jq -r '
-            .predicate.attestations | to_entries | .[] |
-            "[\(.key)] type=\(.value.type)\n     attestation keys: \(.value.attestation | keys)\n     snippet: \(.value.attestation | tostring | .[0:300])"
-          '
 
       - name: Verify behavioral policy fires on the trace attestation
         run: |
