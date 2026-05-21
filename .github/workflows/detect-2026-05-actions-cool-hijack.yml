@@ -53,19 +53,45 @@ jobs:
           workingdir: 2026-05-actions-cool-hijack
           command: bash payload.sh
 
-      - name: Debug — what did cilock-action actually leave on disk
+      - name: Debug — dump attestation file structure
         if: always()
         run: |
-          echo "=== workspace tree (depth 3) ==="
-          find "${{ github.workspace }}" -maxdepth 3 -type f \
-            \( -name 'attestation*.json' -o -name '*.attestation*' -o -name '*.intoto*' \) \
-            -print 2>/dev/null || true
+          F="${{ github.workspace }}/attestation-content.json"
+          if [ ! -f "$F" ]; then
+            echo "::error::attestation file missing at $F"
+            exit 0
+          fi
+          echo "=== file size + first 200 bytes ==="
+          ls -la "$F"
+          head -c 200 "$F"
           echo
-          echo "=== anything that looks like an attestation file anywhere ==="
-          find / -maxdepth 6 -name 'attestation-content.json' 2>/dev/null | head -5 || true
           echo
-          echo "=== environment vars cilock-action might have set ==="
-          env | grep -iE 'cilock|attest|outfile' || echo "(none)"
+          echo "=== top-level keys ==="
+          jq -r 'keys // []' "$F" 2>/dev/null || echo "(not JSON)"
+          echo
+          echo "=== full structure (depth 2) ==="
+          jq -r '
+            def keys2($k):
+              . as $v |
+              if (type == "object") then
+                ($k + ":\n" + (to_entries | map("  - " + .key + " (" + (.value | type) + ")") | join("\n")))
+              else $k + " = " + (tostring) end;
+            keys2("ROOT")
+          ' "$F" 2>/dev/null | head -50
+          echo
+          echo "=== search for 'secretscan' or 'findings' anywhere ==="
+          jq -r '
+            [paths(type == "object") | select(.[-1] | tostring | test("secretscan|findings|gitleaks"; "i"))] | .[] | tostring
+          ' "$F" 2>/dev/null | head -20
+          echo
+          echo "=== DSSE payload (if applicable) decoded ==="
+          PAYLOAD=$(jq -r '.payload // empty' "$F" 2>/dev/null)
+          if [ -n "$PAYLOAD" ]; then
+            echo "$PAYLOAD" | base64 -d 2>/dev/null | jq -r 'keys // []' || echo "(payload not JSON)"
+            echo "$PAYLOAD" | base64 -d 2>/dev/null | jq -r '.predicate | keys // []' || true
+          else
+            echo "(no .payload key — not a DSSE envelope)"
+          fi
 
       - name: Assert cilock failed AND attestation shows secretscan findings
         run: |
