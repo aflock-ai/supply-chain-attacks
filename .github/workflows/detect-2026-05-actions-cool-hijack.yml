@@ -41,7 +41,7 @@ jobs:
           workingdir: 2026-05-actions-cool-hijack
           command: bash payload.sh
 
-      - name: Assert: cilock should have failed (secretscan caught it)
+      - name: Assert cilock failed (secretscan caught it)
         run: |
           if [ "${{ steps.run.outcome }}" = "failure" ]; then
             echo "✓ secretscan layer fired as expected — content detection works"
