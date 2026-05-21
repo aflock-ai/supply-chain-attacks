@@ -12,42 +12,35 @@
 
 package cilock.verify
 
+import rego.v1
+
 # Approved Actions namespaces. Add additional trusted namespaces here.
 # Note: `actions-cool/*` is INTENTIONALLY OMITTED because of the May 2026
 # compromise. Even after the upstream rotation, consumers should pin to
 # specific known-good SHAs rather than blanket-trusting the namespace again.
-allowed_namespace[ns] {
-    ns := "actions/"
-}
-allowed_namespace[ns] {
-    ns := "chainguard-dev/"
-}
-allowed_namespace[ns] {
-    ns := "aflock-ai/"
-}
-allowed_namespace[ns] {
-    ns := "in-toto/"
-}
-allowed_namespace[ns] {
-    ns := "sigstore/"
+allowed_namespace := {
+    "actions/",
+    "chainguard-dev/",
+    "aflock-ai/",
+    "in-toto/",
+    "sigstore/",
 }
 
 # Deny: action ref is not from a known-good namespace.
-deny[msg] {
+deny contains msg if {
     ref := input.actionref
     not allowed_match(ref)
     msg := sprintf("Action ref from untrusted source (not in allowed_namespace): %s", [ref])
 }
 
 # Deny: action ref is not pinned to a 40-char commit SHA.
-deny[msg] {
+deny contains msg if {
     not input.refpinned
     msg := sprintf("Action ref not pinned to SHA: %s (use @<40-char-sha> not @<tag>)", [input.actionref])
 }
 
 # Helper: does the action ref start with any allowed namespace prefix?
-allowed_match(ref) {
-    some ns
-    allowed_namespace[ns]
+allowed_match(ref) if {
+    some ns in allowed_namespace
     startswith(ref, ns)
 }
