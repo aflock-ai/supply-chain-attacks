@@ -31,7 +31,7 @@ Cilock catches this attack at **two of its three layers** independently. Either 
 
 `policy-source-restrict.rego` denies workflow steps that reference any action not in the approved namespace, AND denies any reference that isn't pinned to a 40-character commit SHA. If consumers had pinned by SHA, the imposter commits would have produced a different SHA, the policy would have refused to let the workflow proceed, and the attack would not have executed.
 
-This is the same pattern that defended against the [March 2026 Trivy tag rewrite](https://github.com/aflock-ai/cilock-trivy-detection-test). Tag pinning is broken; the policy enforces SHA pinning.
+This is the same pattern that defended against the [March 2026 Trivy tag rewrite](https://github.com/aflock-ai/attestor-compliance-examples/tree/main/43-trivy-attack-detection). Tag pinning is broken; the policy enforces SHA pinning.
 
 ### Layer 3: Behavioral — ptrace + OPA Rego
 
@@ -83,5 +83,5 @@ echo '{"actionref":"actions-cool/some-action@v1","refpinned":false}' \
 ## References
 
 - Upstream disclosure: see the actions-cool repository advisories on GitHub (specific links to be added as they're confirmed).
-- Related attacks with the same playbook: [Trivy tag rewrite (2026-03)](https://github.com/aflock-ai/cilock-trivy-detection-test), [LiteLLM `.pth` stealer (2026-03)](../2026-03-litellm-pth-stealer/).
+- Related attacks with the same playbook: [Trivy tag rewrite (2026-03)](https://github.com/aflock-ai/attestor-compliance-examples/tree/main/43-trivy-attack-detection), [LiteLLM `.pth` stealer (2026-03)](../2026-03-litellm-pth-stealer/).
 - Cilock three-layer defense model: [cilock.aflock.ai](https://cilock.aflock.ai).

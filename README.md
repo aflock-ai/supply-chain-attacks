@@ -19,7 +19,7 @@ Every entry in this repo is **a real attack, a safe synthetic reproduction of it
 | **2026-05-18** | [Microsoft `durabletask` PyPI trojan](2026-05-microsoft-durabletask-pypi/) | Trojanized release of a Microsoft-published PyPI package | `durabletask` on PyPI | Prevention (attestation policy requires upstream attestation) + Content (secretscan on `setup.py` / `.pth`) | 📋 documented, implementation pending |
 | **2026-05-18** | [GitHub internal source disclosure](2026-05-github-source-disclosure/) | Data exposure / breach, GitHub's own source code | GitHub internal repos | N/A at runtime — cilock would have provided forensic attestations from affected build pipelines | 📋 documentation-only |
 | **2026-03-24** | [LiteLLM `.pth` credential stealer](2026-03-litellm-pth-stealer/) | Python `.pth` file executed on every interpreter startup, sweeping creds | `litellm==1.82.7` and `1.82.8` on PyPI | Content (secretscan with recursive base64 decode) + Behavior (`/proc/self/environ` read) | 📖 see deep-dive walkthrough |
-| **2026-03-19** | [Trivy tag rewrite](2026-03-trivy-tag-rewrite/) | 75/76 version tags force-pushed in `aquasecurity/trivy-action`, creds stolen from `/proc/<pid>/mem` | every pipeline pinning the action by tag | Prevention (SHA pinning enforced by policy) + Content + Behavior | 📖 [full deep-dive in `aflock-ai/cilock-trivy-detection-test`](https://github.com/aflock-ai/cilock-trivy-detection-test) |
+| **2026-03-19** | [Trivy tag rewrite](2026-03-trivy-tag-rewrite/) | 75/76 version tags force-pushed in `aquasecurity/trivy-action`, creds stolen from `/proc/<pid>/mem` | every pipeline pinning the action by tag | Prevention (SHA pinning enforced by policy) + Content + Behavior | 📖 [full deep-dive in `aflock-ai/attestor-compliance-examples/43-trivy-attack-detection`](https://github.com/aflock-ai/attestor-compliance-examples/tree/main/43-trivy-attack-detection) |
 
 ## What this repo is
 
@@ -113,7 +113,7 @@ This repo is a **defensive demonstration**, not an offensive toolkit.
 
 - **Cilock itself:** [aflock-ai/rookery](https://github.com/aflock-ai/rookery)
 - **CI integration:** [aflock-ai/cilock-action](https://github.com/aflock-ai/cilock-action)
-- **Trivy deep-dive (single-attack):** [aflock-ai/cilock-trivy-detection-test](https://github.com/aflock-ai/cilock-trivy-detection-test)
+- **Trivy deep-dive (single-attack):** [43-trivy-attack-detection](https://github.com/aflock-ai/attestor-compliance-examples/tree/main/43-trivy-attack-detection)
 - **Docs:** [cilock.aflock.ai](https://cilock.aflock.ai) — three-layer model, attestor catalog, threat walkthrough
 - **Commercial / managed:** [TestifySec Platform](https://testifysec.com/product)
 

@@ -4,7 +4,7 @@
 
 ## Where the deep-dive lives
 
-**[aflock-ai/cilock-trivy-detection-test](https://github.com/aflock-ai/cilock-trivy-detection-test)**
+**[43-trivy-attack-detection](https://github.com/aflock-ai/attestor-compliance-examples/tree/main/43-trivy-attack-detection)**
 
 That repo is the canonical detection demo for this attack and is referenced from the [cilock tutorial](https://cilock.aflock.ai/tutorials/defending-against-supply-chain-attacks). It ships:
 
@@ -24,6 +24,6 @@ Cilock catches this at all three layers — source policy denies non-SHA-pinned 
 
 ## Read more
 
-- **Detection demo:** [aflock-ai/cilock-trivy-detection-test](https://github.com/aflock-ai/cilock-trivy-detection-test)
+- **Detection demo:** [43-trivy-attack-detection](https://github.com/aflock-ai/attestor-compliance-examples/tree/main/43-trivy-attack-detection)
 - **Threat walkthrough:** [cilock.aflock.ai → Defending against supply-chain attacks](https://cilock.aflock.ai/tutorials/defending-against-supply-chain-attacks)
 - **Blog:** [75 Poisoned Tags and Nobody Noticed](https://testifysec.com/blog/cilock-action-supply-chain-attacks) — Cole Kennedy, March 2026
