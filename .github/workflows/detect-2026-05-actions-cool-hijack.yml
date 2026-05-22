@@ -128,7 +128,7 @@ jobs:
       - name: Verify behavioral policy fires on the trace attestation
         run: |
           # The trace data lives inside the DSSE payload's predicate.
-          # cilock-trivy-detection-test's behavioral policy iterates
+          # 43-trivy-attack-detection's behavioral policy iterates
           # `input.processes[].openedfiles`, so it expects the DECODED
           # predicate-level attestation as input, not the outer DSSE envelope.
           # Pre-decode and pre-extract the command-run / trace entries.
